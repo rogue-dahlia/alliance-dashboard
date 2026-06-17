@@ -1,9 +1,10 @@
-# Alliance Dashboard
+# Alliance Stats
 
-Streamlit web app that ranks alliance members by a power-weighted geometric-mean
-composite of VS score + total power. Source data is a `.xlsx` with two raw-dump
-sheets — one containing columns `player_name` + `VS`, the other `player_name`
-+ `Power`.
+Streamlit web app that presents alliance members across several views: by VS
+score, by total power, by a configurable composite of the two, and by the
+balance between their VS and power percentiles. Source data is a `.xlsx` with
+two raw-dump sheets — one containing columns `player_name` + `VS`, the other
+`player_name` + `Power`.
 
 ## Local
 
@@ -46,8 +47,9 @@ composite = (power_pct ** wp) × (vs_pct ** wv) × 10000   where wp + wv = 1
 ```
 
 The sidebar slider controls `wp` (power weight). Default 67% gives power 2×
-the weight of VS. Bottom of the composite ranking = candidates that contribute
-poorly to both VS *and* power-driven events (city grabs, Desert Storm).
+the weight of VS. Composite is a single number that compresses both
+dimensions; the other tabs (`By VS`, `By Power`, `Balance`) let viewers slice
+the same data without that weighting.
 
 ## Caveats
 
@@ -55,5 +57,5 @@ poorly to both VS *and* power-driven events (city grabs, Desert Storm).
   reads the same player as e.g. `♡ Elena ♡` and `ℭ Elena ℭ`; those show up in
   the "Unmatched" expander so you can fix the source workbook before
   re-deploying.
-- **New players will score low** because their power is small; check tenure
-  before reading the bottom of the list as a kick list.
+- **Newer players will tend to be lower in the power tab** simply because they
+  haven't grown yet; tenure isn't in the data.

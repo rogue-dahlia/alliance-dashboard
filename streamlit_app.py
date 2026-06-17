@@ -18,10 +18,11 @@ import plotly.express as px
 import streamlit as st
 
 st.set_page_config(page_title="Alliance Dashboard", layout="wide")
-st.title("Alliance Performance Dashboard")
+st.title("Alliance Stats")
 st.caption(
-    "Composite = (power_pct ** wp) × (vs_pct ** wv) × 10000. "
-    "Lower composite = potential kick candidate; higher = top contributor."
+    "VS = weekly damage. Power = total power. Composite = "
+    "(power_pct ** wp) × (vs_pct ** wv) × 10000, where the two weights sum to 1. "
+    "Each tab below is a different way of slicing the same data."
 )
 
 
@@ -128,6 +129,9 @@ df["vs_pct"] = df["VS"].rank(pct=True)
 df["power_pct"] = df["Power"].rank(pct=True)
 df["composite"] = (df["power_pct"] ** wp) * (df["vs_pct"] ** wv) * 10000
 df["composite_rank"] = df["composite"].rank(method="min", ascending=False).astype(int)
+df["vs_rank"] = df["VS"].rank(method="min", ascending=False).astype(int)
+df["power_rank"] = df["Power"].rank(method="min", ascending=False).astype(int)
+df["balance"] = df["power_pct"] - df["vs_pct"]
 df = df.sort_values("composite", ascending=False).reset_index(drop=True)
 
 
@@ -168,36 +172,68 @@ def _fmt(df_: pd.DataFrame) -> pd.io.formats.style.Styler:
             "vs_pct": "{:.0%}",
             "power_pct": "{:.0%}",
             "composite": "{:,.0f}",
+            "balance": "{:+.0%}",
         }
     )
 
 
-cols_to_show = ["composite_rank", "player_name", "VS", "Power", "vs_pct", "power_pct", "composite"]
-
-st.subheader("Bottom 10 — kick candidates")
-st.dataframe(_fmt(df.tail(10).iloc[::-1][cols_to_show]), hide_index=True, use_container_width=True)
-
-st.subheader("Top 10 — carries")
-st.dataframe(_fmt(df.head(10)[cols_to_show]), hide_index=True, use_container_width=True)
-
-st.subheader("Full ranking")
-st.dataframe(_fmt(df[cols_to_show]), hide_index=True, use_container_width=True, height=600)
+composite_cols = ["composite_rank", "player_name", "VS", "Power", "vs_pct", "power_pct", "composite"]
+vs_cols = ["vs_rank", "player_name", "VS", "vs_pct"]
+power_cols = ["power_rank", "player_name", "Power", "power_pct"]
+balance_cols = ["player_name", "VS", "Power", "vs_pct", "power_pct", "balance"]
 
 
-# ---------------------------------------------------------------------------
-# Scatter
-# ---------------------------------------------------------------------------
-
-st.subheader("VS vs Power (hover for player)")
-fig = px.scatter(
-    df,
-    x="Power",
-    y="VS",
-    hover_name="player_name",
-    color="composite",
-    color_continuous_scale="RdYlGn",
-    size=df["composite"].clip(lower=1),
-    size_max=18,
+tab_comp, tab_vs, tab_power, tab_balance, tab_scatter = st.tabs(
+    ["Composite", "By VS", "By Power", "Balance", "Scatter"]
 )
-fig.update_layout(coloraxis_colorbar_title="Composite", height=520)
-st.plotly_chart(fig, use_container_width=True)
+
+with tab_comp:
+    st.markdown("Sorted by composite, descending.")
+    st.dataframe(
+        _fmt(df[composite_cols]), hide_index=True, use_container_width=True, height=600
+    )
+
+with tab_vs:
+    st.markdown("Sorted by VS score, descending.")
+    st.dataframe(
+        _fmt(df.sort_values("VS", ascending=False)[vs_cols]),
+        hide_index=True,
+        use_container_width=True,
+        height=600,
+    )
+
+with tab_power:
+    st.markdown("Sorted by total power, descending.")
+    st.dataframe(
+        _fmt(df.sort_values("Power", ascending=False)[power_cols]),
+        hide_index=True,
+        use_container_width=True,
+        height=600,
+    )
+
+with tab_balance:
+    st.markdown(
+        "`balance = power_pct − vs_pct`. Positive = power percentile is higher "
+        "than VS percentile. Negative = VS percentile is higher than power "
+        "percentile. Sorted by absolute imbalance, largest first."
+    )
+    st.dataframe(
+        _fmt(df.reindex(df["balance"].abs().sort_values(ascending=False).index)[balance_cols]),
+        hide_index=True,
+        use_container_width=True,
+        height=600,
+    )
+
+with tab_scatter:
+    st.markdown("VS vs Power. Hover for player; colour = composite percentile.")
+    fig = px.scatter(
+        df,
+        x="Power",
+        y="VS",
+        hover_name="player_name",
+        color="composite",
+        color_continuous_scale="Viridis",
+    )
+    fig.update_traces(marker=dict(size=10))
+    fig.update_layout(coloraxis_colorbar_title="Composite", height=560)
+    st.plotly_chart(fig, use_container_width=True)
