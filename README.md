@@ -46,10 +46,10 @@ power_pct = percentile of total power within the alliance
 composite = (power_pct ** wp) × (vs_pct ** wv) × 10000   where wp + wv = 1
 ```
 
-The sidebar slider controls `wp` (power weight). Default 67% gives power 2×
-the weight of VS. Composite is a single number that compresses both
-dimensions; the other tabs (`By VS`, `By Power`, `Balance`) let viewers slice
-the same data without that weighting.
+The sidebar slider controls `wp` (power weight). Default 50% weights VS and
+power equally. Composite is a single number that compresses both dimensions;
+the other tabs (`By VS`, `By Power`, `Balance`) let viewers slice the same
+data without that weighting.
 
 ## Caveats
 

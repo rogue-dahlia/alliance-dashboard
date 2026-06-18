@@ -120,11 +120,11 @@ power_weight_pct = st.sidebar.slider(
     "Power weight (%)",
     min_value=0,
     max_value=100,
-    value=67,
+    value=50,
     step=1,
     help=(
-        "How much the composite weights power vs VS. 67 = power matters twice "
-        "as much as VS (the 2:1 weighting). 50 = equal. 75 = 3:1 power."
+        "How much the composite weights power vs VS. 50 = equal. "
+        "67 = power matters twice as much as VS. 75 = 3:1 power."
     ),
 )
 wp = power_weight_pct / 100.0
