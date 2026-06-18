@@ -34,8 +34,9 @@ st.caption(
 def _find_sheets(xls: pd.ExcelFile) -> tuple[pd.DataFrame | None, pd.DataFrame | None, list[str], list[str]]:
     """Pick the most recent sheet containing a VS column and a Power column.
 
-    "Most recent" = last in workbook order (the capture tool appends new raw
-    dumps at the end, so the rightmost VS / Power sheet is the latest).
+    A sheet contributes to a metric if it has `player_name` + that metric's
+    column. A single combined sheet with all three columns will populate both
+    the VS and Power tables. "Most recent" = last in workbook order.
     Returns (vs_df, power_df, vs_sheet_names_seen, power_sheet_names_seen).
     """
     vs_df = power_df = None
@@ -44,11 +45,13 @@ def _find_sheets(xls: pd.ExcelFile) -> tuple[pd.DataFrame | None, pd.DataFrame |
     for name in xls.sheet_names:
         df = pd.read_excel(xls, sheet_name=name)
         cols = set(df.columns)
-        if "player_name" in cols and "VS" in cols:
-            vs_df = df[["player_name", "VS"]].dropna()
+        if "player_name" not in cols:
+            continue
+        if "VS" in cols:
+            vs_df = df[["player_name", "VS"]].dropna(subset=["player_name", "VS"])
             vs_names.append(name)
-        elif "player_name" in cols and "Power" in cols:
-            power_df = df[["player_name", "Power"]].dropna()
+        if "Power" in cols:
+            power_df = df[["player_name", "Power"]].dropna(subset=["player_name", "Power"])
             power_names.append(name)
     return vs_df, power_df, vs_names, power_names
 
@@ -80,15 +83,17 @@ elif default_path.exists():
     source = f"repo: {default_path.name}"
 else:
     st.info(
-        "Upload an .xlsx with two raw-dump sheets — one containing `player_name` + "
-        "`VS`, one containing `player_name` + `Power`. Or commit a `data.xlsx` next "
-        "to this script."
+        "Upload an .xlsx with the data — either one sheet with columns "
+        "`player_name`, `VS`, `Power`, or two sheets (one with `player_name` + "
+        "`VS`, another with `player_name` + `Power`). Or commit a `data.xlsx` "
+        "next to this script."
     )
     st.stop()
 
 if vs_df is None or power_df is None:
     st.error(
-        "Couldn't find both sheets. Need one sheet with columns "
+        "Couldn't find both metrics. Need either one sheet with columns "
+        "(`player_name`, `VS`, `Power`), or two sheets — one with "
         "(`player_name`, `VS`) and one with (`player_name`, `Power`)."
     )
     st.stop()
